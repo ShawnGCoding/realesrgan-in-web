@@ -6,9 +6,11 @@ import { ref } from "vue"
 
 const uploadedFile = ref<File>(new File([], "uploadedFile"))
 const showImageProcessor = ref(false)
-function handleFileUploaded (file: File): void {
-  uploadedFile.value = file
+function handleFileUploaded(file: File): void {
   showImageProcessor.value = true
+  setTimeout(() => {
+    uploadedFile.value = file
+  })
 }
 
 </script>
@@ -17,7 +19,7 @@ function handleFileUploaded (file: File): void {
     <div class="upload-container" v-if="!showImageProcessor">
       <UploadButton @file-uploaded="handleFileUploaded" />
     </div>
-    <div class="image-processor-container">
+    <div class="image-processor-container" v-else>
       <ImageProcessor :uploadedFile="uploadedFile" />
     </div>
   </div>
