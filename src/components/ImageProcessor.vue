@@ -3,6 +3,7 @@ import { ref, useTemplateRef, watch, reactive, onMounted } from "vue"
 import CustomImage from "./classes/customImage";
 import * as tf from '@tensorflow/tfjs'
 import { splitImage } from "@/utils";
+import { WorkerPool } from "./classes/workerPool";
 const canvasRef = useTemplateRef<HTMLCanvasElement>("canvasRef")
 const shadowCanvasRef = useTemplateRef<HTMLCanvasElement>("shadowCanvasRef")
 const containerRef = useTemplateRef<HTMLDivElement>("containerRef")
@@ -67,6 +68,10 @@ function readFile (file: File) {
       const canvasOffsetY = (canvasHeight - image.height * imageScale) / 2
 
       drawCanvasImage(imageScale, canvasOffsetX, canvasOffsetY)
+
+      setTimeout(() => {
+        processImage()
+      }, 1000)
     }
   }
 }
@@ -78,10 +83,15 @@ function drawCanvasImage(imageScale: number, canvasOffsetX: number, canvasOffset
 }
 
 async function processImage() {
+  const workerPool = new WorkerPool('../../workers/task-worker.js')
+  const tileSize = 64
   const { locationX, locationY, paddingLeft, paddingRight, paddingTop, paddingBottom, xNum, yNum } = splitImage({ tileSize: 64, minOverlap: 12, image: myImage.value })
   for (let i = 0; i < xNum; i++) {
     for (let j = 0; j < yNum; j++) {
-
+      const tileImage = myImage.value.getFixedPositionBuffer(locationX[i], locationX[i] + tileSize, locationY[j], locationY[j] + tileSize)
+      const tile = new CustomImage(tileSize, tileSize)
+      tile.setFixedPositionBuffer(0, tileSize, 0, tileSize, tileImage)
+      workerPool.addTask({image: tile}, i * xNum + j)
     }
   }
 

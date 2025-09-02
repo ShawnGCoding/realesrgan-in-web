@@ -1,24 +1,23 @@
-class WorkerPool {
-  private poolSize: number
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { CustomWorker } from "./customWorker";
+export class WorkerPool {
+  private poolSize = navigator.hardwareConcurrency || 8
   private workerScript: string
-  private workers: Worker[]
+  private workers: CustomWorker[]
   private tasks: {
     data: any
     status: string
     result: any
   }[]
-  private taskQueue: string[]
-  private initialized: boolean
+  private taskQueue: number[]
   private completedTasks: number
   private totalTasks: number
   private startTime: number
-  constructor(poolSize: number, workerScript: string) {
-    this.poolSize = poolSize;
+  constructor(workerScript: string) {
     this.workerScript = workerScript;
     this.workers = [];
     this.tasks = [];
     this.taskQueue = [];
-    this.initialized = false;
 
     // 统计信息
     this.completedTasks = 0;
@@ -31,16 +30,16 @@ class WorkerPool {
   // 初始化Worker池
   init() {
       for (let i = 0; i < this.poolSize; i++) {
-          const worker = new Worker(this.workerScript);
-          worker.id = i;
-          worker.available = true;
+          const worker = new CustomWorker(new Worker(new URL(this.workerScript, import.meta.url), {type: 'module'}));
+          worker.setId(i);
+          worker.setAvailable(true);
 
-          worker.onmessage = (e) => {
-              worker.available = true;
+          worker.getWorker().onmessage = (e) => {
+              worker.setAvailable(true)
               this.completedTasks++;
 
               // 更新UI
-              this.updateProgress();
+              // this.updateProgress();
 
               // 处理任务结果
               if (e.data && e.data.taskId !== undefined) {
@@ -53,9 +52,9 @@ class WorkerPool {
               this.processNextTask(worker);
           };
 
-          worker.onerror = (e) => {
-              console.error(`Worker ${worker.id} 错误:`, e.message);
-              worker.available = true;
+          worker.getWorker().onerror = (e: any) => {
+              console.error(`Worker ${worker.getId()} 错误:`, e.message);
+              worker.setAvailable(true);
 
               if (e.data && e.data.taskId !== undefined) {
                   this.tasks[e.data.taskId].status = 'error';
@@ -68,12 +67,11 @@ class WorkerPool {
           this.workers.push(worker);
       }
 
-      this.initialized = true;
       this.updateWorkerStatusUI();
   }
 
   // 添加任务到队列
-  addTask(taskData, taskId) {
+  addTask(taskData: any, taskId: number) {
       this.tasks[taskId] = {
           data: taskData,
           status: 'pending',
@@ -93,21 +91,21 @@ class WorkerPool {
 
       if (availableWorker && this.taskQueue.length > 0) {
           const taskId = this.taskQueue.shift();
-          this.executeTask(availableWorker, taskId);
+          this.executeTask(availableWorker, taskId!);
       }
   }
 
   // 获取可用Worker
   getAvailableWorker() {
-      return this.workers.find(worker => worker.available);
+      return this.workers.find(worker => worker.getAvailable());
   }
 
   // 执行任务
-  executeTask(worker, taskId) {
-      worker.available = false;
+  executeTask(worker: CustomWorker, taskId: number) {
+      worker.setAvailable(false);
       this.tasks[taskId].status = 'processing';
 
-      worker.postMessage({
+      worker.getWorker().postMessage({
           taskId: taskId,
           data: this.tasks[taskId].data
       });
@@ -117,18 +115,19 @@ class WorkerPool {
   }
 
   // 处理下一个任务
-  processNextTask(worker) {
+  processNextTask(worker: CustomWorker) {
       if (this.taskQueue.length > 0) {
           const taskId = this.taskQueue.shift();
-          this.executeTask(worker, taskId);
+          this.executeTask(worker, taskId!);
       } else {
           this.updateWorkerStatusUI();
 
           // 检查所有任务是否完成
           if (this.completedTasks === this.totalTasks) {
               const endTime = performance.now();
-              const totalTime = endTime - this.startTime;
-              document.getElementById('totalTime').textContent = Math.round(totalTime);
+            const totalTime = endTime - this.startTime;
+            console.log(totalTime);
+              // document.getElementById('totalTime').textContent = Math.round(totalTime);
           }
       }
   }
@@ -140,53 +139,53 @@ class WorkerPool {
       this.processTaskQueue();
   }
 
-  // 更新任务UI
-  updateTaskUI(taskId) {
-      const taskResults = document.getElementById('taskResults');
-      let taskElement = document.getElementById(`task-${taskId}`);
+  updateTaskUI(taskId: number) {
+    console.log(taskId);
+      // const taskResults = document.getElementById('taskResults');
+      // let taskElement = document.getElementById(`task-${taskId}`);
 
-      if (!taskElement) {
-          taskElement = document.createElement('div');
-          taskElement.id = `task-${taskId}`;
-          taskElement.className = 'task-item';
-          taskResults.appendChild(taskElement);
-      }
+      // if (!taskElement) {
+      //     taskElement = document.createElement('div');
+      //     taskElement.id = `task-${taskId}`;
+      //     taskElement.className = 'task-item';
+      //     taskResults.appendChild(taskElement);
+      // }
 
-      const status = this.tasks[taskId].status;
-      const statusClass = status === 'completed' ? 'success' : (status === 'error' ? 'error' : '');
+      // const status = this.tasks[taskId].status;
+      // const statusClass = status === 'completed' ? 'success' : (status === 'error' ? 'error' : '');
 
-      taskElement.innerHTML = `
-          <span>任务 #${taskId} (${status})</span>
-          <span class="${statusClass}">${this.tasks[taskId].result || ''}</span>
-      `;
+      // taskElement.innerHTML = `
+      //     <span>任务 #${taskId} (${status})</span>
+      //     <span class="${statusClass}">${this.tasks[taskId].result || ''}</span>
+      // `;
   }
 
   // 更新进度UI
   updateProgress() {
-      const progress = document.getElementById('overallProgress');
-      const completedElem = document.getElementById('completedTasks');
+      // const progress = document.getElementById('overallProgress');
+      // const completedElem = document.getElementById('completedTasks');
 
-      const percentage = this.totalTasks > 0 ? (this.completedTasks / this.totalTasks) * 100 : 0;
-      progress.style.width = `${percentage}%`;
-      completedElem.textContent = `${this.completedTasks}/${this.totalTasks}`;
+      // const percentage = this.totalTasks > 0 ? (this.completedTasks / this.totalTasks) * 100 : 0;
+      // progress.style.width = `${percentage}%`;
+      // completedElem.textContent = `${this.completedTasks}/${this.totalTasks}`;
   }
 
   // 更新Worker状态UI
   updateWorkerStatusUI() {
-      const workerStatus = document.getElementById('workerStatus');
-      workerStatus.innerHTML = '';
+      // const workerStatus = document.getElementById('workerStatus');
+      // workerStatus.innerHTML = '';
 
-      this.workers.forEach(worker => {
-          const workerElem = document.createElement('div');
-          workerElem.className = `worker ${worker.available ? 'worker-idle' : 'worker-busy'}`;
+      // this.workers.forEach(worker => {
+      //     const workerElem = document.createElement('div');
+      //     workerElem.className = `worker ${worker.available ? 'worker-idle' : 'worker-busy'}`;
 
-          workerElem.innerHTML = `
-              <div class="worker-status-icon ${worker.available ? 'idle' : 'busy'}"></div>
-              <div>Worker #${worker.id} (${worker.available ? '空闲' : '忙碌'})</div>
-          `;
+      //     workerElem.innerHTML = `
+      //         <div class="worker-status-icon ${worker.available ? 'idle' : 'busy'}"></div>
+      //         <div>Worker #${worker.id} (${worker.available ? '空闲' : '忙碌'})</div>
+      //     `;
 
-          workerStatus.appendChild(workerElem);
-      });
+      //     workerStatus.appendChild(workerElem);
+      // });
   }
 
   // 终止所有Worker
@@ -196,6 +195,5 @@ class WorkerPool {
       });
 
       this.workers = [];
-      this.initialized = false;
   }
 }
