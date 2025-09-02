@@ -91,7 +91,7 @@ async function processImage() {
       const tileImage = myImage.value.getFixedPositionBuffer(locationX[i], locationX[i] + tileSize, locationY[j], locationY[j] + tileSize)
       const tile = new CustomImage(tileSize, tileSize)
       tile.setFixedPositionBuffer(0, tileSize, 0, tileSize, tileImage)
-      workerPool.addTask({image: tile}, i * xNum + j)
+      workerPool.addTask({image: tile}, `${i}-${j}`)
     }
   }
 

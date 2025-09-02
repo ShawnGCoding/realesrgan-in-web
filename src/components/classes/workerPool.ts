@@ -4,19 +4,19 @@ export class WorkerPool {
   private poolSize = navigator.hardwareConcurrency || 8
   private workerScript: string
   private workers: CustomWorker[]
-  private tasks: {
+  private tasks: Record<string, {
     data: any
     status: string
     result: any
-  }[]
-  private taskQueue: number[]
+  }>
+  private taskQueue: string[]
   private completedTasks: number
   private totalTasks: number
   private startTime: number
   constructor(workerScript: string) {
     this.workerScript = workerScript;
     this.workers = [];
-    this.tasks = [];
+    this.tasks = {};
     this.taskQueue = [];
 
     // 统计信息
@@ -71,7 +71,7 @@ export class WorkerPool {
   }
 
   // 添加任务到队列
-  addTask(taskData: any, taskId: number) {
+  addTask(taskData: any, taskId: string) {
       this.tasks[taskId] = {
           data: taskData,
           status: 'pending',
@@ -101,7 +101,7 @@ export class WorkerPool {
   }
 
   // 执行任务
-  executeTask(worker: CustomWorker, taskId: number) {
+  executeTask(worker: CustomWorker, taskId: string) {
       worker.setAvailable(false);
       this.tasks[taskId].status = 'processing';
 
@@ -139,7 +139,7 @@ export class WorkerPool {
       this.processTaskQueue();
   }
 
-  updateTaskUI(taskId: number) {
+  updateTaskUI(taskId: string) {
     console.log(taskId);
       // const taskResults = document.getElementById('taskResults');
       // let taskElement = document.getElementById(`task-${taskId}`);
