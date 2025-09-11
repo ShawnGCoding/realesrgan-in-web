@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import CustomImage from '@/components/classes/customImage';
 import * as tf from '@tensorflow/tfjs'
 

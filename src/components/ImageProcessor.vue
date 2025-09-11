@@ -11,8 +11,19 @@ const props = defineProps<{
   uploadedFile: File
 }>()
 const image = reactive(new Image())
+const processedImage = reactive(new Image())
+const processedImageUrl = ref("")
+const imageScale = ref(1)
 const myImage = ref()
 const modelInfo = ref()
+const outputImage = ref()
+
+const paddingArray = reactive({
+  paddingLeft: [] as number[],
+  paddingRight: [] as number[],
+  paddingTop: [] as number[],
+  paddingBottom: [] as number[],
+})
 
 watch(() => props.uploadedFile, (newVal: File) => {
   updateCanvasSize()
@@ -41,6 +52,9 @@ function updateCanvasSize() {
   canvasRef.value!.height = containerRef.value!.offsetHeight * window.devicePixelRatio
 }
 
+const originalCanvasOffsetX = ref(0)
+const originalCanvasOffsetY = ref(0)
+
 function readFile (file: File) {
   const reader = new FileReader()
   reader.readAsDataURL(file)
@@ -56,36 +70,47 @@ function readFile (file: File) {
       // Uint8ClampedArray
       const imageData = ctx?.getImageData(0, 0, image.width, image.height).data
       // ArrayBuffer
-      const buffer = imageData?.buffer
+      // const buffer = imageData?.buffer
       myImage.value = new CustomImage(image.width, image.height, imageData);
 
       const canvasWidth = canvasRef.value!.width
       const canvasHeight = canvasRef.value!.height
 
       // 将图片缩放到合适的大小
-      const imageScale = Math.min(0.8 * canvasWidth / image.width, 0.8 * canvasHeight / image.height, 4);
-      const canvasOffsetX = (canvasWidth - image.width * imageScale) / 2
-      const canvasOffsetY = (canvasHeight - image.height * imageScale) / 2
+      imageScale.value = Math.min(0.8 * canvasWidth / image.width, 0.8 * canvasHeight / image.height, 4);
+      originalCanvasOffsetX.value = (canvasWidth - image.width * imageScale.value) / 2
+      originalCanvasOffsetY.value = (canvasHeight - image.height * imageScale.value) / 2
 
-      drawCanvasImage(imageScale, canvasOffsetX, canvasOffsetY)
+      drawCanvasImage(imageScale.value, originalCanvasOffsetX.value, originalCanvasOffsetY.value, true)
 
       setTimeout(() => {
         processImage()
-      }, 1000)
+      }, 100)
     }
   }
 }
 
-function drawCanvasImage(imageScale: number, canvasOffsetX: number, canvasOffsetY: number) {
+function drawCanvasImage(imageScale: number, canvasOffsetX: number, canvasOffsetY: number, isOriginalImage: boolean) {
   const ctx = canvasRef.value!.getContext("2d")
-  ctx?.clearRect(0, 0, canvasRef.value!.width, canvasRef.value!.height)
-  ctx?.drawImage(image, canvasOffsetX, canvasOffsetY, myImage.value.getWidth() * imageScale, myImage.value.getHeight() * imageScale)
+  // ctx?.clearRect(0, 0, canvasRef.value!.width, canvasRef.value!.height)
+  if (isOriginalImage) {
+    ctx?.drawImage(image, canvasOffsetX, canvasOffsetY, myImage.value.getWidth() * imageScale, myImage.value.getHeight() * imageScale)
+  } else {
+    console.log(processedImage)
+    console.log(image)
+    console.log(canvasOffsetX, canvasOffsetY, outputImage.value.getWidth(), outputImage.value.getHeight())
+    ctx?.drawImage(processedImage, canvasOffsetX, canvasOffsetY, outputImage.value.getWidth() * imageScale, outputImage.value.getHeight() * imageScale)
+  }
 }
 
 async function processImage() {
-  const workerPool = new WorkerPool('../../workers/task-worker.js')
+  const workerPool = new WorkerPool('../../workers/task-worker.js', onSingleWorkerFinish, onAllWorkerFinish);
   const tileSize = 64
   const { locationX, locationY, paddingLeft, paddingRight, paddingTop, paddingBottom, xNum, yNum } = splitImage({ tileSize: 64, minOverlap: 12, image: myImage.value })
+  paddingArray.paddingLeft = paddingLeft
+  paddingArray.paddingRight = paddingRight
+  paddingArray.paddingTop = paddingTop
+  paddingArray.paddingBottom = paddingBottom
   for (let i = 0; i < xNum; i++) {
     for (let j = 0; j < yNum; j++) {
       const tileImage = myImage.value.getFixedPositionBuffer(locationX[i], locationX[i] + tileSize, locationY[j], locationY[j] + tileSize)
@@ -94,8 +119,47 @@ async function processImage() {
       workerPool.addTask({image: tile}, `${i}-${j}`)
     }
   }
-
 }
+
+function onSingleWorkerFinish(data: { taskId: string, result: any }) {
+  const { taskId, result } = data
+  const processResult = new CustomImage(result.width, result.height, result.data)
+  const tileSize = 64;
+  const [i, j] = taskId.split('-').map(Number)
+  if (!outputImage.value) {
+    outputImage.value = new CustomImage(myImage.value.getWidth() * 4, myImage.value.getHeight() * 4);
+  }
+  const tileImage = processResult.getFixedPositionBuffer(0, tileSize * 4, 0, tileSize * 4);
+  outputImage.value.setFixedPositionBuffer(paddingArray.paddingLeft[i] * 4, outputImage.value.getWidth() - paddingArray.paddingRight[i] * 4, paddingArray.paddingTop[j] * 4, outputImage.value.getHeight() - paddingArray.paddingBottom[j] * 4, tileImage);
+  console.log(outputImage.value)
+  // const canvasContext = canvasRef.value!.getContext("2d");
+
+  // const oImg = canvasContext?.createImageData(outputImage.value.getWidth(), outputImage.value.getHeight());
+  // oImg?.data.set(outputImage.value.getData().buffer);
+  // canvasContext?.putImageData(oImg!, 0, 0);
+  // canvasRef.value?.toBlob((blob) => {
+  //   const url = URL.createObjectURL(blob!);
+  //   console.log(url)
+  //   image.src = url;
+  // })
+}
+
+function onAllWorkerFinish() {
+  const canvasContext = canvasRef.value!.getContext("2d");
+
+  const oImg = canvasContext?.createImageData(outputImage.value.getWidth(), outputImage.value.getHeight());
+  oImg?.data.set(outputImage.value.getData().buffer);
+  canvasContext?.putImageData(oImg!, 0, 0);
+  canvasRef.value?.toBlob((blob) => {
+    const url = URL.createObjectURL(blob!);
+    processedImage.src = url;
+    processedImageUrl.value = url;
+    processedImage.onload = () => {
+      drawCanvasImage(imageScale.value, originalCanvasOffsetX.value + myImage.value.getWidth(), originalCanvasOffsetY.value, false)
+    }
+  }, 'image/jpeg', 0.92)
+}
+
 
 </script>
 <template>

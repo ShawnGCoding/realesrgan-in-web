@@ -13,7 +13,9 @@ export class WorkerPool {
   private completedTasks: number
   private totalTasks: number
   private startTime: number
-  constructor(workerScript: string) {
+  private onSingleFinish: (result: any) => void
+  private onAllFinish: () => void
+  constructor(workerScript: string, onSingleFinish: (result: any) => void, onAllFinish: () => void) {
     this.workerScript = workerScript;
     this.workers = [];
     this.tasks = {};
@@ -23,7 +25,8 @@ export class WorkerPool {
     this.completedTasks = 0;
     this.totalTasks = 0;
     this.startTime = 0;
-
+    this.onSingleFinish = onSingleFinish;
+    this.onAllFinish = onAllFinish;
     this.init();
   }
 
@@ -37,7 +40,7 @@ export class WorkerPool {
           worker.getWorker().onmessage = (e) => {
               worker.setAvailable(true)
               this.completedTasks++;
-
+              this.onSingleFinish(e.data);
               // 更新UI
               // this.updateProgress();
 
@@ -127,6 +130,8 @@ export class WorkerPool {
               const endTime = performance.now();
             const totalTime = endTime - this.startTime;
             console.log(totalTime);
+            this.onAllFinish();
+            this.terminate();
               // document.getElementById('totalTime').textContent = Math.round(totalTime);
           }
       }

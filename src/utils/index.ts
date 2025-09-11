@@ -25,10 +25,10 @@ export function splitImage({tileSize, minOverlap, image}: {tileSize: number, min
   const locationX = new Array(xNum)
   const locationY = new Array(yNum)
 
-  const paddingLeft = new Array(xNum)
-  const paddingRight = new Array(xNum)
-  const paddingTop = new Array(yNum)
-  const paddingBottom = new Array(yNum)
+  const paddingLeft = new Array<number>(xNum)
+  const paddingRight = new Array<number>(xNum)
+  const paddingTop = new Array<number>(yNum)
+  const paddingBottom = new Array<number>(yNum)
 
   const totalOverlapX = (xNum - 1) * minOverlap
   const totalOverlapY = (yNum - 1) * minOverlap

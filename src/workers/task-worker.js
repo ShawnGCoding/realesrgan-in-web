@@ -6,7 +6,6 @@ let modelInfo = null
 
 self.addEventListener("message", async (event) => {
   const { data } = event
-  console.log(data.data.image)
   const image = data.data.image
   const customImage = new CustomImage(image.width, image.height, image.data)
 
@@ -15,7 +14,6 @@ self.addEventListener("message", async (event) => {
   // 加载模型到indexedDB
   try {
     modelInfo = await tf.loadGraphModel(`indexeddb://${model_name}`)
-    console.log(modelInfo)
   } catch (err) {
     console.log(err)
     modelInfo = await (async () => {
@@ -25,5 +23,8 @@ self.addEventListener("message", async (event) => {
     })();
   }
   const resultImage = await upscale(customImage, modelInfo)
-  console.log(resultImage)
+  self.postMessage({
+    taskId: data.taskId,
+    result: resultImage
+  })
 })
