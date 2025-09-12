@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import UploadSinglePic from './components/UploadSinglePic.vue';
+import PictureCompare from './components/PictureCompare.vue';
+
 </script>
 
 <template>
-  <UploadSinglePic />
+  <!-- <UploadSinglePic /> -->
+    <!-- <Banner /> -->
+    <PictureCompare />
 </template>
 
 <style scoped></style>
