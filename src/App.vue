@@ -6,7 +6,8 @@ import PictureCompare from './components/PictureCompare.vue';
 <template>
   <!-- <UploadSinglePic /> -->
     <!-- <Banner /> -->
-    <PictureCompare />
+    <!-- <PictureCompare /> -->
+     <RouterView />
 </template>
 
 <style scoped></style>

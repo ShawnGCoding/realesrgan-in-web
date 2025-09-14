@@ -1,5 +1,10 @@
 <template>
   <div class="picture-compare-container" ref="containerRef" @mousemove.stop.prevent="updateLinePosition">
+    <div>
+      <a href="#" class="back-btn back-btn-dark" @click="router.push('/')">
+          < 返回
+      </a>
+    </div>
     <canvas id="canvas" ref="canvasRef"></canvas>
     <div class="upload-origin-btn left-btn">
       <input type="file" id="origin-file-input" accept="image/*" class="origin-file-input" @change="handleOriginFileChange"/>
@@ -21,7 +26,10 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, ref, useTemplateRef } from 'vue'
+import { ref, useTemplateRef } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const devicePixelRatio = window.devicePixelRatio
 
@@ -250,5 +258,64 @@ const endDragLine = () => {
   left: 50%;
   transform: translate(-50%, -50%);
   cursor: ew-resize;
+}
+.back-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 28px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    text-decoration: none;
+    top: 10px;
+    left: 10px;
+}
+
+.back-btn i {
+    margin-right: 10px;
+    transition: transform 0.3s ease;
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    color: #10121E;
+}
+
+.back-btn:hover i {
+    transform: translateX(-5px);
+}
+
+.back-btn:active {
+    transform: translateY(1px);
+}
+
+.back-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: all 0.6s ease;
+    transform: translateX(-100%);
+}
+
+.back-btn:hover::before {
+    transform: translateX(100%);
+}
+.back-btn-dark {
+    background: rgba(0, 0, 0, 0.7);
 }
 </style>
