@@ -1,4 +1,4 @@
-import type CustomImage from "@/components/classes/customImage";
+import type CustomImage from '@/components/classes/customImage'
 /**
  * 分割图片
  * 1. 为什么要分块？
@@ -11,16 +11,24 @@ import type CustomImage from "@/components/classes/customImage";
  * @param minOverlap 最小重叠
  * @param image 图片
  */
-export function splitImage({tileSize, minOverlap, image}: {tileSize: number, minOverlap: number, image: CustomImage}) {
+export function splitImage({
+  tileSize,
+  minOverlap,
+  image,
+}: {
+  tileSize: number
+  minOverlap: number
+  image: CustomImage
+}) {
   const width = image.getWidth()
   const height = image.getHeight()
 
   // x轴方向上需要分割的图片数量
-  let xNum = 1;
+  let xNum = 1
   // y轴方向上需要分割的图片数量
-  let yNum = 1;
-  while ((xNum * tileSize + (xNum - 1) * minOverlap) < width) xNum++
-  while ((yNum * tileSize + (yNum - 1) * minOverlap) < height) yNum++
+  let yNum = 1
+  while (xNum * tileSize + (xNum - 1) * minOverlap < width) xNum++
+  while (yNum * tileSize + (yNum - 1) * minOverlap < height) yNum++
 
   const locationX = new Array(xNum)
   const locationY = new Array(yNum)
@@ -39,8 +47,8 @@ export function splitImage({tileSize, minOverlap, image}: {tileSize: number, min
   const extraOverlapX = totalOverlapX - (xNum - 1) * baseOverlapX
   const extraOverlapY = totalOverlapY - (yNum - 1) * baseOverlapY
 
-  locationX[0] = 0;
-  locationY[0] = 0;
+  locationX[0] = 0
+  locationY[0] = 0
 
   for (let i = 1; i < xNum; ++i) {
     if (i <= extraOverlapX) {
@@ -82,4 +90,13 @@ export function splitImage({tileSize, minOverlap, image}: {tileSize: number, min
     xNum,
     yNum,
   }
+}
+
+export function checkIfImageHasAlpha(imageData: Uint8ClampedArray) {
+  for (let i = 0; i < imageData.length; i += 4) {
+    if (imageData[i + 3] !== 255) {
+      return true
+    }
+  }
+  return false
 }

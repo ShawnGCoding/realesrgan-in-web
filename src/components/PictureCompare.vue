@@ -1,5 +1,5 @@
 <template>
-  <div class="picture-compare-container" ref="containerRef" @mousemove.stop.prevent="updateLinePosition">
+  <div class="picture-compare-container" ref="containerRef" @mousemove="dragCanvas" @mousedown="startDragCanvas" @mouseup="endDragCanvas">
     <div>
       <a href="#" class="back-btn back-btn-dark" @click="router.push('/')">
           < 返回
@@ -15,7 +15,7 @@
       上传超分后的图片
     </div>
     <div class="line" :style="{ left: `${linePosition / devicePixelRatio}px` }" 
-     @mousedown.stop.prevent="startDragLine" @mouseup.stop.prevent="endDragLine">
+     @mousedown.stop.prevent="startDragLine" @mousemove.stop.prevent="updateLinePosition">
     <div class="dragBall">
         <svg width="30" viewBox="0 0 27 20">
           <path fill="#ff3484" d="M9.6 0L0 9.6l9.6 9.6z"></path>
@@ -43,7 +43,8 @@ const originImageOffsetX = ref(0)
 const originImageOffsetY = ref(0)
 const targetImageOffsetX = ref(0)
 const targetImageOffsetY = ref(0)
-const isDragging = ref(false)
+const isDraggingLine = ref(false)
+const isDraggingCanvas = ref(false)
 const linePosition = ref(0)
 
 
@@ -173,7 +174,7 @@ const drawSplitOriginalImage = () => {
 }
 
 const updateLinePosition = (event: MouseEvent) => {
-  if (!isDragging.value) {
+  if (!isDraggingLine.value) {
     return
   }
   const left = canvasRef.value!.getBoundingClientRect().left
@@ -181,18 +182,52 @@ const updateLinePosition = (event: MouseEvent) => {
   drawLineChangedImage();
 }
 const drawLineChangedImage = () => {
-  requestAnimationFrame(_drawLineChangedImage)
+  requestAnimationFrame(_drawImage)
 }
-const _drawLineChangedImage = () => {
+const _drawImage = () => {
+  const canvasContext = canvasRef.value!.getContext("2d")
+  canvasContext?.clearRect(0, 0, canvasRef.value!.width, canvasRef.value!.height)
   drawSplitOriginalImage()
   drawSplitTargetImage()
 }
 const startDragLine = () => {
-  isDragging.value = true
+  isDraggingLine.value = true
 }
 const endDragLine = () => {
-  isDragging.value = false
+  isDraggingLine.value = false
 }
+
+const dragCanvas = (event: MouseEvent) => {
+  if (isDraggingLine.value) {
+    updateLinePosition(event)
+  }
+  if (!originImage.value.src || !targetImage.value.src) {
+    return
+  }
+  if (isDraggingCanvas.value) {
+    originImageOffsetX.value += event.movementX * window.devicePixelRatio
+    originImageOffsetY.value += event.movementY * window.devicePixelRatio
+    _drawImage();
+  }
+}
+const startDragCanvas = (event: MouseEvent) => {
+  if (!originImage.value.src || !targetImage.value.src) {
+    return
+  }
+  const left = canvasRef.value!.getBoundingClientRect().left
+  const mouseX = event.clientX - left;
+  if (Math.abs(mouseX - linePosition.value / window.devicePixelRatio) < 10) {
+    isDraggingLine.value = true
+    return
+  }
+  isDraggingCanvas.value = true
+}
+const endDragCanvas = () => {
+  isDraggingCanvas.value = false
+  isDraggingLine.value = false
+}
+
+
 </script>
 <style scoped lang="scss">
 .picture-compare-container {
