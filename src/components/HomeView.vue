@@ -18,7 +18,7 @@
           <button class="btn btn-primary" @click="router.push('/picture-compare')">
               超分对比图片
           </button>
-          <button class="btn btn-secondary" disabled>
+          <button class="btn btn-secondary" @click="router.push('/single-picture')">
               AI超分图片(待开发)
           </button>
       </div>

@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import PictureCompare from '@/components/PictureCompare.vue'
 import HomeView from '@/components/HomeView.vue'
-
+import SinglePictureProcess from '@/components/SinglePictureProcess.vue'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
