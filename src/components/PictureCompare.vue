@@ -1,5 +1,5 @@
 <template>
-  <div class="picture-compare-container" ref="containerRef" @mousemove="dragCanvas" @mousedown="startDragCanvas" @mouseup="endDragCanvas">
+  <div class="picture-compare-container" ref="containerRef" @mousemove="dragCanvas" @mousedown="startDragCanvas" @mouseup="endDragCanvas" @wheel="resizeCanvas">
     <div>
       <a href="#" class="back-btn back-btn-dark" @click="router.push('/')">
           < 返回
@@ -14,7 +14,7 @@
       <input type="file" id="target-file-input" accept="image/*" class="target-file-input" @change="handleTargetFileChange"/>
       上传超分后的图片
     </div>
-    <div class="line" :style="{ left: `${linePosition / devicePixelRatio}px` }" 
+    <div class="line" :style="{ left: `${linePosition / devicePixelRatio}px` }"
      @mousedown.stop.prevent="startDragLine" @mousemove.stop.prevent="updateLinePosition">
     <div class="dragBall">
         <svg width="30" viewBox="0 0 27 20">
@@ -106,8 +106,8 @@ const drawOriginalImage = () => {
   originImageScale.value = Math.min(0.6 * canvasRef.value!.width / originImage.value.width, 0.6 * canvasRef.value!.height / originImage.value.height, 4)
     originImageOffsetX.value = (canvasRef.value!.width - originImage.value.width * originImageScale.value) / 2
     originImageOffsetY.value = (canvasRef.value!.height - originImage.value.height * originImageScale.value) / 2
-    canvasContext?.drawImage(originImage.value, originImageOffsetX.value, 
-      originImageOffsetY.value, originImage.value.width * originImageScale.value, 
+    canvasContext?.drawImage(originImage.value, originImageOffsetX.value,
+      originImageOffsetY.value, originImage.value.width * originImageScale.value,
       originImage.value.height * originImageScale.value)
 }
 
@@ -126,7 +126,7 @@ const drawSplitTargetImage = (isInitial: boolean = false) => {
     linePosition.value = canvasRef.value!.width / 2
   }
   if (linePosition.value > originImageOffsetX.value) {
-    canvasContext?.drawImage(targetImage.value, 
+    canvasContext?.drawImage(targetImage.value,
       (targetImage.value.width / originImage.value.width) * (linePosition.value - originImageOffsetX.value) / originImageScale.value,
       0,
       targetImage.value.width - (targetImage.value.width / originImage.value.width) * (linePosition.value - originImageOffsetX.value) / originImageScale.value,
@@ -137,7 +137,7 @@ const drawSplitTargetImage = (isInitial: boolean = false) => {
       originImage.value.height * originImageScale.value
     )
   } else {
-    canvasContext?.drawImage(targetImage.value, 
+    canvasContext?.drawImage(targetImage.value,
       0,
       0,
       targetImage.value.width,
@@ -153,8 +153,8 @@ const drawSplitTargetImage = (isInitial: boolean = false) => {
 const drawSplitOriginalImage = () => {
   const canvasContext = canvasRef.value!.getContext("2d")
   if (linePosition.value > originImageOffsetX.value && linePosition.value < originImageOffsetX.value + originImage.value.width * originImageScale.value) {
-    canvasContext?.drawImage(originImage.value, 0, 0, 
-      (linePosition.value - originImageOffsetX.value) / originImageScale.value, 
+    canvasContext?.drawImage(originImage.value, 0, 0,
+      (linePosition.value - originImageOffsetX.value) / originImageScale.value,
       originImage.value.height,
       originImageOffsetX.value,
       originImageOffsetY.value,
@@ -162,7 +162,7 @@ const drawSplitOriginalImage = () => {
       originImage.value.height * originImageScale.value
     )
   } else {
-    canvasContext?.drawImage(originImage.value, 0, 0, 
+    canvasContext?.drawImage(originImage.value, 0, 0,
       originImage.value.width,
       originImage.value.height,
       originImageOffsetX.value,
@@ -192,9 +192,6 @@ const _drawImage = () => {
 }
 const startDragLine = () => {
   isDraggingLine.value = true
-}
-const endDragLine = () => {
-  isDraggingLine.value = false
 }
 
 const dragCanvas = (event: MouseEvent) => {
@@ -226,7 +223,28 @@ const endDragCanvas = () => {
   isDraggingCanvas.value = false
   isDraggingLine.value = false
 }
+const resizeCanvas = (event: WheelEvent) => {
+  if (!originImage.value.src || !targetImage.value.src) {
+    return
+  }
+  const prevScale = originImageScale.value
+  const maxScale = 20 * prevScale;
+  const minScale = 0.05 * prevScale;
+  const top = canvasRef.value!.getBoundingClientRect().top
+  const left = canvasRef.value!.getBoundingClientRect().left
+  const mouseX = (event.clientX - left) * window.devicePixelRatio
+  const mouseY = (event.clientY - top) * window.devicePixelRatio
+  if (event.deltaY > 0) {
+    originImageScale.value = Math.min(maxScale, prevScale * 1.1)
+  } else {
+    originImageScale.value = Math.max(minScale, prevScale * 0.9)
+  }
+  const ratio = originImageScale.value / prevScale
+  originImageOffsetX.value = mouseX - (mouseX - originImageOffsetX.value) * ratio
+  originImageOffsetY.value = mouseY - (mouseY - originImageOffsetY.value) * ratio
+  _drawImage()
 
+}
 
 </script>
 <style scoped lang="scss">
@@ -239,6 +257,7 @@ const endDragCanvas = () => {
   top: 0;
   left: 0;
   z-index: -1;
+  cursor: grab;
   #canvas {
     height: 100vh;
   }
