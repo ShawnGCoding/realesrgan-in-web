@@ -7,6 +7,7 @@ const router = createRouter({
   routes: [
     { path: '/', component: HomeView },
     { path: '/picture-compare', component: PictureCompare },
+    { path: '/single-picture', component: SinglePictureProcess },
   ],
 })
 
