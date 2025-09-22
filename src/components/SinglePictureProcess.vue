@@ -1,14 +1,22 @@
 <script lang="ts" setup>
-import { ref, computed, useTemplateRef } from 'vue'
+import { ref, computed, useTemplateRef, reactive } from 'vue'
+import CustomImage from './classes/customImage'
 
 const originImage = ref<HTMLImageElement>(new Image())
 const originImageScale = ref(1)
 const hasUploadedOriginImage = ref(false)
 const canvasRef = useTemplateRef<HTMLCanvasElement>("canvasRef")
+const shadowCanvasRef = useTemplateRef<HTMLCanvasElement>("shadowCanvasRef")
 const containerRef = useTemplateRef<HTMLDivElement>("containerRef")
 const originImageOffsetX = ref(0)
 const originImageOffsetY = ref(0)
 const drawer = ref(false)
+const originCustomImage = ref<CustomImage>(new CustomImage())
+
+const OptionsForm = reactive({
+  scaleValue: '4x',
+  tileSize: 64
+})
 
 
 const handleOriginFileChange = (event: Event) => {
@@ -23,6 +31,7 @@ const handleOriginFileChange = (event: Event) => {
       originImage.value.onload = () => {
         updateCanvasSize()
         drawOriginImage()
+        originCustomImage.value = createCustomImage()
       }
     }
   }
@@ -43,12 +52,23 @@ const updateCanvasSize = () => {
   canvasRef.value!.style.width = containerRef.value!.offsetWidth + 'px'
   canvasRef.value!.style.height = containerRef.value!.offsetHeight + 'px'
 }
+
+const createCustomImage = () => {
+  const canvasContext = shadowCanvasRef.value!.getContext("2d")
+  canvasContext?.drawImage(originImage.value, 0, 0);
+  const imageData = canvasContext?.getImageData(0, 0, originImage.value.width, originImage.value.height).data;
+  return new CustomImage(originImage.value.width, originImage.value.height, imageData);
+}
+
+const handleSubmit = () => {
+
+}
 </script>
 <template>
   <div class="single-picture-process-container" ref="containerRef">
     <template v-if="hasUploadedOriginImage">
       <canvas ref="canvasRef"></canvas>
-      <canvas></canvas>
+      <canvas ref="shadowCanvasRef"></canvas>
       <div class="setting-btn" @click="drawer = true">
         设置
       </div>
@@ -59,8 +79,40 @@ const updateCanvasSize = () => {
         请上传需要超分的图片
       </div>
     </template>
-    <el-drawer v-model="drawer" title="I am the title" direction="ltr">
-      <span>Hi there!</span>
+    <el-drawer v-model="drawer" title="超分参数设置" direction="ltr">
+      <div class="scale-select">
+        <div>放大倍数:</div>
+        <el-select v-model="OptionsForm.scaleValue" placeholder="Select" style="width: 240px">
+          <el-option
+            key="4x"
+            label="4x"
+            value="4x"
+          />
+          <el-option
+            key="8x"
+            label="8x"
+            value="8x"
+          />
+        </el-select>
+      </div>
+      <div class="scale-select">
+        <div>分片大小:</div>
+        <el-select v-model="OptionsForm.tileSize" placeholder="Select" style="width: 240px">
+          <el-option
+            key="64"
+            label="64"
+            value="64"
+          />
+          <el-option
+            key="32"
+            label="32"
+            value="32"
+          />
+        </el-select>
+      </div>
+      <div class="submit-btn">
+        <el-button type="primary" @click="handleSubmit">确定</el-button>
+      </div>
     </el-drawer>
   </div>
 
@@ -128,5 +180,19 @@ const updateCanvasSize = () => {
     font-size: 22px;
     color: #10121E;
   }
+}
+.scale-select {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  .el-select {
+    width: 240px;
+  }
+}
+.submit-btn {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
 }
 </style>
