@@ -31,6 +31,44 @@ export default class CustomImage {
     }
   }
 
+  tileSizePad(tileSize: number) {
+    if (this.width >= tileSize && this.height >= tileSize) return;
+    const newWidth = Math.max(tileSize, this.width);
+    const newHeight = Math.max(tileSize, this.height);
+    const newData = new Uint8ClampedArray(newWidth * newHeight * 4);
+    // 复制原有的data
+    for (let y = 0; y < this.height; y++) {
+      const sourceStart = y * this.width * 4
+      const destinationStart = y * newWidth * 4
+      newData.set(this.data.subarray(sourceStart, sourceStart + this.width * 4), destinationStart)
+    }
+
+    // 如果宽度小于tileSize，则根据最右侧的像素填充右侧的空白
+    if (this.width < newWidth) {
+      for (let y = 0; y < this.height; y++) {
+        const rightBorderStart = (y + 1) * this.width * 4 - 4;
+        for (let x = this.width; x < newWidth; x++) {
+          newData.set(this.data.subarray(rightBorderStart, rightBorderStart + 4), y * newWidth * 4 + x * 4)
+        }
+      }
+    }
+
+    // 如果高度小于tileSize，则根据最底部的像素填充底部的空白
+    if (this.height < newHeight) {
+      const bottomBorderStart = (this.height - 1) * newWidth * 4;
+      // 获取最底部一行的像素
+      const bottomLinePixels = this.data.subarray(bottomBorderStart, bottomBorderStart + newWidth * 4);
+      for (let y = this.height; y < newHeight; y++) {
+        const destinationStart = y * newWidth * 4;
+        newData.set(bottomLinePixels, destinationStart)
+      }
+    }
+
+    this.width = newWidth
+    this.height = newHeight
+    this.data = newData
+  }
+
   getWidth() {
     return this.width
   }

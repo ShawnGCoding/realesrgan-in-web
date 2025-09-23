@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, computed, useTemplateRef, reactive } from 'vue'
+import { ref, useTemplateRef, reactive } from 'vue'
 import CustomImage from './classes/customImage'
 
 const originImage = ref<HTMLImageElement>(new Image())
