@@ -96,9 +96,6 @@ function drawCanvasImage(imageScale: number, canvasOffsetX: number, canvasOffset
   if (isOriginalImage) {
     ctx?.drawImage(image, canvasOffsetX, canvasOffsetY, myImage.value.getWidth() * imageScale, myImage.value.getHeight() * imageScale)
   } else {
-    console.log(processedImage)
-    console.log(image)
-    console.log(canvasOffsetX, canvasOffsetY, outputImage.value.getWidth(), outputImage.value.getHeight())
     ctx?.drawImage(processedImage, canvasOffsetX, canvasOffsetY, outputImage.value.getWidth() * imageScale, outputImage.value.getHeight() * imageScale)
   }
 }

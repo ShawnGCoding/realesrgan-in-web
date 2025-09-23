@@ -31,6 +31,16 @@ export default class CustomImage {
     }
   }
 
+  setCroppedImage(x1: number, x2: number, y1: number, y2: number, otherImage: CustomImage, x: number, y: number) {
+    const width = x2 - x1
+    const height = y2 - y1
+    for (let j = 0; j < height; j++) {
+      const srcStart = (y1 + j) * otherImage.width * 4 + x1 * 4;
+      const destStart = (y + j) * this.width * 4 + x * 4;
+      this.data.set(otherImage.data.subarray(srcStart, srcStart + width * 4), destStart)
+    }
+  }
+
   tileSizePad(tileSize: number) {
     if (this.width >= tileSize && this.height >= tileSize) return;
     const newWidth = Math.max(tileSize, this.width);
