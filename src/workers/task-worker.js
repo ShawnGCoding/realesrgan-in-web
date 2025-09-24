@@ -22,12 +22,10 @@ self.addEventListener("message", async (event) => {
       return fetchedModel;
     })();
   }
-  const result = new CustomImage(customImage.width * 4, customImage.height * 4)
-  const resultImage = await upscale(customImage, modelInfo)
+  const result = await splitImageWithLap(customImage, 64, 12, 4)
   self.postMessage({
-    taskId: data.taskId,
-    result: resultImage
-  })
+    result: result.data.buffer
+  }, [result.data.buffer])
 })
 
 async function splitImageWithLap(image, tileSize, minOverlap, factor = 4) {
@@ -101,5 +99,6 @@ async function splitImageWithLap(image, tileSize, minOverlap, factor = 4) {
       )
     }
   }
+  return result
 
 }

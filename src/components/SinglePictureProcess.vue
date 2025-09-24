@@ -13,6 +13,8 @@ const originImageOffsetY = ref(0)
 const drawer = ref(false)
 const originCustomImage = ref<CustomImage>(new CustomImage())
 
+const worker = new Worker(new URL('../workers/task-worker.js', import.meta.url), { type: 'module' })
+
 const OptionsForm = reactive({
   scaleValue: '4x',
   tileSize: 64
