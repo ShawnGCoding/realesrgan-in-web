@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { ref, useTemplateRef, reactive } from 'vue'
 import CustomImage from './classes/customImage'
+import PictureCompare from './PictureCompare.vue'
 
 const originImage = ref<HTMLImageElement>(new Image())
 const originImageScale = ref(1)
@@ -13,7 +14,9 @@ const originImageOffsetY = ref(0)
 const drawer = ref(false)
 const originCustomImage = ref<CustomImage>(new CustomImage())
 
-const worker = new Worker(new URL('../workers/task-worker.js', import.meta.url), { type: 'module' })
+const showResultImage = ref(false)
+
+const worker = ref(new Worker(new URL('../workers/task-worker.js', import.meta.url), { type: 'module' }))
 
 const OptionsForm = reactive({
   scaleValue: '4x',
@@ -62,62 +65,82 @@ const createCustomImage = () => {
   return new CustomImage(originImage.value.width, originImage.value.height, imageData);
 }
 
-const handleSubmit = () => {
+const targetImageData = ref()
+const originImageData = ref()
 
+const handleSubmit = () => {
+  worker.value.addEventListener('message', (event) => {
+    const { data } = event
+    const { result, origin } = data
+      console.log('!!!!!!!!!!!!!!!!!')
+      console.log(result)
+    targetImageData.value = result
+    originImageData.value = origin
+    showResultImage.value = true
+  })
+  worker.value.postMessage({
+    image: originCustomImage.value.getData().buffer,
+    width: originCustomImage.value.getWidth(),
+    height: originCustomImage.value.getHeight()
+  }, [originCustomImage.value.getData().buffer])
 }
 </script>
 <template>
-  <div class="single-picture-process-container" ref="containerRef">
-    <template v-if="hasUploadedOriginImage">
-      <canvas ref="canvasRef"></canvas>
-      <canvas ref="shadowCanvasRef"></canvas>
-      <div class="setting-btn" @click="drawer = true">
-        设置
-      </div>
-    </template>
-    <template v-else>
-      <div class="upload-origin-btn">
-        <input type="file" id="origin-file-input" accept="image/*" class="origin-file-input" @change="handleOriginFileChange"/>
-        请上传需要超分的图片
-      </div>
-    </template>
-    <el-drawer v-model="drawer" title="超分参数设置" direction="ltr">
-      <div class="scale-select">
-        <div>放大倍数:</div>
-        <el-select v-model="OptionsForm.scaleValue" placeholder="Select" style="width: 240px">
-          <el-option
-            key="4x"
-            label="4x"
-            value="4x"
-          />
-          <el-option
-            key="8x"
-            label="8x"
-            value="8x"
-          />
-        </el-select>
-      </div>
-      <div class="scale-select">
-        <div>分片大小:</div>
-        <el-select v-model="OptionsForm.tileSize" placeholder="Select" style="width: 240px">
-          <el-option
-            key="64"
-            label="64"
-            value="64"
-          />
-          <el-option
-            key="32"
-            label="32"
-            value="32"
-          />
-        </el-select>
-      </div>
-      <div class="submit-btn">
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
-      </div>
-    </el-drawer>
+  <div>
+    <div class="single-picture-process-container" ref="containerRef" v-if="!showResultImage">
+      <template v-if="hasUploadedOriginImage">
+        <canvas ref="canvasRef"></canvas>
+        <canvas ref="shadowCanvasRef"></canvas>
+        <div class="setting-btn" @click="drawer = true">
+          设置
+        </div>
+      </template>
+      <template v-else>
+        <div class="upload-origin-btn">
+          <input type="file" id="origin-file-input" accept="image/*" class="origin-file-input" @change="handleOriginFileChange"/>
+          请上传需要超分的图片
+        </div>
+      </template>
+      <el-drawer v-model="drawer" title="超分参数设置" direction="ltr">
+        <div class="scale-select">
+          <div>放大倍数:</div>
+          <el-select v-model="OptionsForm.scaleValue" placeholder="Select" style="width: 240px">
+            <el-option
+              key="4x"
+              label="4x"
+              value="4x"
+            />
+            <el-option
+              key="8x"
+              label="8x"
+              value="8x"
+            />
+          </el-select>
+        </div>
+        <div class="scale-select">
+          <div>分片大小:</div>
+          <el-select v-model="OptionsForm.tileSize" placeholder="Select" style="width: 240px">
+            <el-option
+              key="64"
+              label="64"
+              value="64"
+            />
+            <el-option
+              key="32"
+              label="32"
+              value="32"
+            />
+          </el-select>
+        </div>
+        <div class="submit-btn">
+          <el-button type="primary" @click="handleSubmit">确定</el-button>
+        </div>
+      </el-drawer>
+    </div>
+    <div v-else>
+      <PictureCompare :fromProcess="true" :targetImageData="targetImageData" :originImageData="originImageData" :originImageWidth="originCustomImage.getWidth()" :originImageHeight="originCustomImage.getHeight()" />
+    </div>
   </div>
-
 </template>
 <style scoped lang="scss">
 .single-picture-process-container {

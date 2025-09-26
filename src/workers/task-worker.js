@@ -5,9 +5,12 @@ import CustomImage from '../components/classes/customImage'
 let modelInfo = null
 
 self.addEventListener("message", async (event) => {
+  console.log('!!!!!!!!!!!')
+  console.log(event)
   const { data } = event
-  const image = data.data.image
-  const customImage = new CustomImage(image.width, image.height, image.data)
+  const image = data.image
+  const { width, height, factor = 4 } = data
+  const customImage = new CustomImage(width, height, image.data)
 
   const model_url = 'https://cappuccino.moe/realcugan/4x-conservative-64/model.json'
   const model_name = 'realcugan_4x_conservative_64'
@@ -24,18 +27,24 @@ self.addEventListener("message", async (event) => {
   }
   const result = await splitImageWithLap(customImage, 64, 12, 4)
   self.postMessage({
-    result: result.data.buffer
+    result: result.data.buffer,
+    origin: data.image,
+    width: width * factor,
+    height: height * factor
   }, [result.data.buffer])
 })
 
 async function splitImageWithLap(image, tileSize, minOverlap, factor = 4) {
-  const width = image.width
-  const height = image.height
+  const width = image.getWidth()
+  const height = image.getHeight()
 
   const result = new CustomImage(width * factor, height * factor)
   let xNum = 1, yNum = 1
   while(xNum * tileSize - (xNum - 1) * minOverlap < width) xNum++
-  while(yNum * tileSize - (yNum - 1) * minOverlap < height) yNum++
+  while (yNum * tileSize - (yNum - 1) * minOverlap < height) yNum++
+
+  console.log('xNum', xNum)
+  console.log('yNum', yNum)
 
   const totalOverlapX = tileSize * xNum - width
   const totalOverlapY = tileSize * yNum - height

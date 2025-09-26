@@ -6,11 +6,12 @@
       </a>
     </div>
     <canvas id="canvas" ref="canvasRef"></canvas>
-    <div class="upload-origin-btn left-btn">
+    <canvas ref="shadowCanvasRef"></canvas>
+    <div class="upload-origin-btn left-btn" v-if="!fromProcess">
       <input type="file" id="origin-file-input" accept="image/*" class="origin-file-input" @change="handleOriginFileChange"/>
       上传原图
     </div>
-    <div class="upload-target-btn right-btn">
+    <div class="upload-target-btn right-btn" v-if="!fromProcess">
       <input type="file" id="target-file-input" accept="image/*" class="target-file-input" @change="handleTargetFileChange"/>
       上传超分后的图片
     </div>
@@ -26,14 +27,16 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, useTemplateRef } from 'vue'
+import { onMounted, ref, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
+import CustomImage from './classes/customImage'
 
 const router = useRouter()
 
 const devicePixelRatio = window.devicePixelRatio
 
 const canvasRef = useTemplateRef<HTMLCanvasElement>("canvasRef")
+const shadowCanvasRef = useTemplateRef<HTMLCanvasElement>("shadowCanvasRef")
 const containerRef = useTemplateRef<HTMLDivElement>("containerRef")
 const originImage = ref<HTMLImageElement>(new Image())
 const targetImage = ref<HTMLImageElement>(new Image())
@@ -46,6 +49,44 @@ const targetImageOffsetY = ref(0)
 const isDraggingLine = ref(false)
 const isDraggingCanvas = ref(false)
 const linePosition = ref(0)
+
+onMounted(() => {
+  if (props.targetImageData && props.originImageData && props.originImageWidth && props.originImageHeight) {
+
+    const targetImage = new CustomImage(props.originImageWidth * 4, props.originImageHeight * 4, new Uint8ClampedArray(props.targetImageData))
+
+    const shadowCanvasContext = shadowCanvasRef.value!.getContext("2d")
+    shadowCanvasRef.value!.width =  targetImage.getWidth()
+    shadowCanvasRef.value!.height = targetImage.getHeight()
+
+
+    const targetImageData = shadowCanvasContext!.createImageData(targetImage.getWidth(), targetImage.getHeight())
+    targetImageData.data.set(props.targetImageData)
+    shadowCanvasContext?.putImageData(targetImageData, 0, 0)
+
+
+
+
+    shadowCanvasContext?.drawImage(targetImage, 0, 0, targetImage.getWidth(), targetImage.getHeight())
+    shadowCanvasContext?.drawImage(originImage.value, 0, 0, props.originImageWidth, props.originImageHeight)
+    originImage.value.src = props.originImageData
+    targetImage.value.src = props.targetImageData
+    originImage.value.onload = () => {
+      drawCanvasImage('origin')
+    }
+    targetImage.value.onload = () => {
+      drawCanvasImage('target')
+    }
+  }
+})
+
+const props = defineProps<{
+  fromProcess?: boolean
+  targetImageData?: any
+  originImageData?: any
+  originImageWidth?: number
+  originImageHeight?: number
+}>()
 
 
 const handleOriginFileChange = (event: Event) => {
@@ -84,6 +125,7 @@ function updateCanvasSize() {
 
 const drawCanvasImage = (type: 'origin' | 'target') => {
   updateCanvasSize()
+  debugger
   if (type === 'origin') {
     drawOriginalImage()
     // 画超分后的图片，使用分割线分割

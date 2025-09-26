@@ -100,3 +100,4 @@ export function checkIfImageHasAlpha(imageData: Uint8ClampedArray) {
   }
   return false
 }
+
